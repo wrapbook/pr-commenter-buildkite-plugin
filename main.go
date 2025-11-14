@@ -81,6 +81,7 @@ func run() exitCode {
 		comment, err := commenter.FindExistingComment(ctx, owner, repo, prNumber)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error fetching existing comments: %s\n", err)
+			return exitError
 		}
 		if comment != nil {
 			_, _ = fmt.Fprintf(os.Stdout, "Matching comment exists: %s\n", *comment.HTMLURL)
