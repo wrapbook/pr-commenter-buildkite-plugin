@@ -84,6 +84,9 @@ func run() exitCode {
 			fmt.Fprintf(os.Stderr, "Error fetching existing comments: %s\n", err)
 			return exitError
 		}
+		// if existing comment found, update body if necessary (message has changed)
+		// else do nothing
+		// and exit
 		if comment != nil {
 			// Check body/message of existing comment and update if changed
 			if !strings.Contains(*comment.Body, message) {
@@ -93,12 +96,11 @@ func run() exitCode {
 					return exitError
 				}
 				_, _ = fmt.Fprintf(os.Stdout, "Updated matching comment: %s\n", *comment.HTMLURL)
-				return exitOK
 			} else {
 				// Comment body/message unchanged, no action needed
 				_, _ = fmt.Fprintf(os.Stdout, "Found matching comment: %s\n", *comment.HTMLURL)
-				return exitOK
 			}
+			return exitOK
 		}
 	}
 
