@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"strings"
 
 	"prcommenter/internal/common"
 	"prcommenter/internal/github"
@@ -84,21 +83,20 @@ func run() exitCode {
 			fmt.Fprintf(os.Stderr, "Error fetching existing comments: %s\n", err)
 			return exitError
 		}
-		// if existing comment found, update body if necessary (message has changed)
-		// else do nothing
-		// and exit
 		if comment != nil {
-			// Check body/message of existing comment and update if changed
-			if !strings.Contains(*comment.Body, message) {
+			// existing comment found, check comment body for exact match
+			// and update if body/message has changed
+			if commenter.MatchBody(ctx, comment, message) {
+				// Comment body/message unchanged, no action needed
+				_, _ = fmt.Fprintf(os.Stdout, "Found matching comment: %s\n", *comment.HTMLURL)
+			} else {
+				// Body does not match, update comment
 				err = commenter.UpdateComment(ctx, owner, repo, message, *comment.ID)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "Error updating existing comment %s: %s\n", *comment.HTMLURL, err)
 					return exitError
 				}
 				_, _ = fmt.Fprintf(os.Stdout, "Updated matching comment: %s\n", *comment.HTMLURL)
-			} else {
-				// Comment body/message unchanged, no action needed
-				_, _ = fmt.Fprintf(os.Stdout, "Found matching comment: %s\n", *comment.HTMLURL)
 			}
 			return exitOK
 		}

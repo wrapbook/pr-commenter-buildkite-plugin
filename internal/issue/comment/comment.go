@@ -39,6 +39,10 @@ func NewCommenter(client GitHubClient) *Commenter {
 	}
 }
 
+func (c *Commenter) formatBody(message string) string {
+	return fmt.Sprintf("%s\n\n<!-- %s -->", message, c.messageId)
+}
+
 func (c *Commenter) Post(ctx context.Context, owner string, repo string, number string, message string) error {
 	numberConverted, err := strconv.Atoi(number)
 	if err != nil {
@@ -48,7 +52,7 @@ func (c *Commenter) Post(ctx context.Context, owner string, repo string, number 
 	if message == "" {
 		return errors.New("no message provided for comment")
 	}
-	body := fmt.Sprintf("%s\n\n<!-- %s -->", message, c.messageId)
+	body := c.formatBody(message)
 
 	comment := &github.IssueComment{
 		Body: &body,
@@ -62,7 +66,7 @@ func (c *Commenter) UpdateComment(ctx context.Context, owner string, repo string
 	if message == "" {
 		return errors.New("no message provided for comment")
 	}
-	body := fmt.Sprintf("%s\n\n<!-- %s -->", message, c.messageId)
+	body := c.formatBody(message)
 	comment := &github.IssueComment{
 		Body: &body,
 	}
@@ -87,4 +91,9 @@ func (c *Commenter) FindExistingComment(ctx context.Context, owner string, repo 
 		}
 	}
 	return nil, nil
+}
+
+func (c *Commenter) MatchBody(ctx context.Context, comment *github.IssueComment, message string) bool {
+	// Match for exact body content
+	return c.formatBody(message) == *comment.Body
 }
