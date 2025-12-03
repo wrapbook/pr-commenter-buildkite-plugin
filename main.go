@@ -76,7 +76,7 @@ func run() exitCode {
 		allowRepeats, _ = strconv.ParseBool(allowRepeatsVal)
 	}
 
-	// Check for existing comment and exit if found, preventing duplicate comments
+	// Check for existing comment using the internal "message id", and update body if necessary
 	if !allowRepeats {
 		comment, err := commenter.FindExistingComment(ctx, owner, repo, prNumber)
 		if err != nil {
@@ -84,11 +84,26 @@ func run() exitCode {
 			return exitError
 		}
 		if comment != nil {
-			_, _ = fmt.Fprintf(os.Stdout, "Matching comment exists: %s\n", *comment.HTMLURL)
+			// existing comment found, check comment body for exact match
+			// and update if body/message has changed
+			if commenter.MatchBody(ctx, comment, message) {
+				// Comment body/message unchanged, no action needed
+				_, _ = fmt.Fprintf(os.Stdout, "Found matching comment: %s\n", *comment.HTMLURL)
+			} else {
+				// Body does not match, update comment
+				err = commenter.UpdateComment(ctx, owner, repo, message, *comment.ID)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error updating existing comment %s: %s\n", *comment.HTMLURL, err)
+					return exitError
+				}
+				_, _ = fmt.Fprintf(os.Stdout, "Updated matching comment: %s\n", *comment.HTMLURL)
+			}
 			return exitOK
 		}
 	}
 
+	// If we're here, we didn't find an existing comment or allowRepeats is true (ie. post duplicate comments)
+	// Post a new comment
 	err = commenter.Post(ctx, owner, repo, prNumber, message)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error posting comment: %s\n", err)

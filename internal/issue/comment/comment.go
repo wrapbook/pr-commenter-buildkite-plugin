@@ -9,17 +9,19 @@ import (
 	"strings"
 
 	"prcommenter/internal/common"
+
 	"github.com/google/go-github/github"
 )
 
 type Commenter struct {
-	client GitHubClient
+	client    GitHubClient
 	messageId string
 }
 
 type GitHubClient interface {
 	CreateComment(ctx context.Context, owner string, repo string, number int, comment *github.IssueComment) (*github.IssueComment, *github.Response, error)
 	ListComments(ctx context.Context, owner string, repo string, number int, opts *github.IssueListCommentsOptions) ([]*github.IssueComment, *github.Response, error)
+	EditComment(ctx context.Context, owner, repo string, commentID int64, comment *github.IssueComment) (*github.IssueComment, *github.Response, error)
 }
 
 func NewCommenter(client GitHubClient) *Commenter {
@@ -32,9 +34,13 @@ func NewCommenter(client GitHubClient) *Commenter {
 	}
 
 	return &Commenter{
-		client: client,
+		client:    client,
 		messageId: messageId,
 	}
+}
+
+func (c *Commenter) formatBody(message string) string {
+	return fmt.Sprintf("%s\n\n<!-- %s -->", message, c.messageId)
 }
 
 func (c *Commenter) Post(ctx context.Context, owner string, repo string, number string, message string) error {
@@ -46,13 +52,26 @@ func (c *Commenter) Post(ctx context.Context, owner string, repo string, number 
 	if message == "" {
 		return errors.New("no message provided for comment")
 	}
-	body := fmt.Sprintf("%s\n\n<!-- %s -->", message, c.messageId)
+	body := c.formatBody(message)
 
 	comment := &github.IssueComment{
 		Body: &body,
 	}
 
 	_, _, err = c.client.CreateComment(ctx, owner, repo, numberConverted, comment)
+	return err
+}
+
+func (c *Commenter) UpdateComment(ctx context.Context, owner string, repo string, message string, commentId int64) error {
+	if message == "" {
+		return errors.New("no message provided for comment")
+	}
+	body := c.formatBody(message)
+	comment := &github.IssueComment{
+		Body: &body,
+	}
+
+	_, _, err := c.client.EditComment(ctx, owner, repo, commentId, comment)
 	return err
 }
 
@@ -66,10 +85,15 @@ func (c *Commenter) FindExistingComment(ctx context.Context, owner string, repo 
 	if err != nil {
 		return nil, err
 	}
-	for _, comment := range(comments) {
+	for _, comment := range comments {
 		if comment.Body != nil && strings.Contains(*comment.Body, c.messageId) {
 			return comment, nil
 		}
 	}
 	return nil, nil
+}
+
+func (c *Commenter) MatchBody(ctx context.Context, comment *github.IssueComment, message string) bool {
+	// Match for exact body content
+	return c.formatBody(message) == *comment.Body
 }
