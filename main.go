@@ -64,8 +64,22 @@ func run() exitCode {
 
 	message, found := os.LookupEnv(common.PluginPrefix + "MESSAGE")
 	if !found {
-		fullStepURL := fmt.Sprintf("%s#%s", os.Getenv("BUILDKITE_BUILD_URL"), os.Getenv("BUILDKITE_JOB_ID"))
-		message = fmt.Sprintf("[%s](%s) exited with code %s", fullStepURL, fullStepURL, os.Getenv("BUILDKITE_COMMAND_EXIT_STATUS"))
+		// Check if message-path has been set
+		// and read in the provided file for the message content
+		messagePath, found := os.LookupEnv(common.PluginPrefix + "MESSAGE_PATH")
+		if found {
+			m, err := os.ReadFile(messagePath)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error reading message-path file: %s\n", err)
+				return exitError
+			}
+			message = string(m)
+		} else {
+			// at this point, neither message nor message-path are set
+			// so just use a default message
+			fullStepURL := fmt.Sprintf("%s#%s", os.Getenv("BUILDKITE_BUILD_URL"), os.Getenv("BUILDKITE_JOB_ID"))
+			message = fmt.Sprintf("[%s](%s) exited with code %s", fullStepURL, fullStepURL, os.Getenv("BUILDKITE_COMMAND_EXIT_STATUS"))
+		}
 	}
 
 	var allowRepeats = true

@@ -8,6 +8,9 @@ configuration:
   properties:
     message:
       type: string
+    message-path:
+      type: string
+      description: "Path to a file containing the message to be posted"
     secret-name:
       type: string
     allow-repeats:
