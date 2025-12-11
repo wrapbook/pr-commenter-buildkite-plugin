@@ -17,7 +17,7 @@ Add the following to your `pipeline.yml`:
     steps:
         command: echo "~~~ :github: Add approval comment Pull Request"
         plugins:
-            - pr-commenter#v0.1.0:
+            - pr-commenter#v0.4.0:
                 message: "LGTM!"
                 secret-name: GITHUB_TOKEN
 ```
@@ -29,8 +29,21 @@ Set `allow-repeats: false` in order to post and update a single comment.
     steps:
         command: echo "~~~ :github: Add approval comment Pull Request"
         plugins:
-            - pr-commenter#v0.1.0:
+            - pr-commenter#v0.4.0:
                 message: "LGTM!"
+                secret-name: GITHUB_TOKEN
+                allow-repeats: false
+```
+
+### Dynamic Message Content
+
+Since the value of `message` is set/interpolated at the start of the pipeline (upload), `message-path` can be used to post message content generated during a step.
+```yaml
+    steps:
+        command: echo "~~~ :github: Add approval comment Pull Request"
+        plugins:
+            - pr-commenter#v0.4.0:
+                message-path: "pr-comment.md"
                 secret-name: GITHUB_TOKEN
                 allow-repeats: false
 ```
@@ -46,6 +59,11 @@ Default: `GITHUB_TOKEN`
 The message which should be posted to the PR. This can be a dynamic value, such as `$BUILDKITE_COMMAND`
 
 Default: `[${BUILDKITE_BUILD_URL}#${BUILDKITE_JOB_ID}](${BUILDKITE_BUILD_URL}#${BUILDKITE_JOB_ID}) exited with code ${BUILDKITE_COMMAND_EXIT_STATUS}`
+
+### `message-path` (optional, string)
+The path to a file containing the message which should be posted to the PR. If both `message` and `message-path` are set, the plugin will use the value provided for `message`. 
+
+Default: `null`
 
 ### `allow-repeats` (optional, boolean)
 Whether to Allow identical comments to be posted every time the plugin is run. Disabling this (`allow-repeats: false`) will cause the plugin to post a single "sticky" comment, which will be updated on subsequent runs if the message changes.
