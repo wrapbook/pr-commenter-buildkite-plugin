@@ -42,9 +42,12 @@ func TestPost(t *testing.T) {
 		},
 	}
 
-	commenter, _ := comment.NewCommenter(mockClient)
+	commenter, err := comment.NewCommenter(mockClient)
+	if err != nil {
+		t.Fatalf("NewCommenter: %v", err)
+	}
 
-	err := commenter.Post(context.Background(), "testdev", "hello", "420", "Test comment")
+	err = commenter.Post(context.Background(), "testdev", "hello", "420", "Test comment")
 	if err != nil {
 		t.Fatalf("error posting comment: %s", err)
 	}
@@ -90,7 +93,10 @@ func TestFindExistingComment_Found(t *testing.T) {
 		},
 	}
 
-	commenter, _ := comment.NewCommenter(mockClient)
+	commenter, err := comment.NewCommenter(mockClient)
+	if err != nil {
+		t.Fatalf("NewCommenter: %v", err)
+	}
 	result, err := commenter.FindExistingComment(context.Background(), "testdev", "hello", "320")
 
 	if err != nil {
@@ -124,8 +130,11 @@ func TestUpdateComment_Success(t *testing.T) {
 		},
 	}
 
-	commenter, _ := comment.NewCommenter(mockClient)
-	err := commenter.UpdateComment(context.Background(), "testdev", "hello", "Updated comment", commentID)
+	commenter, err := comment.NewCommenter(mockClient)
+	if err != nil {
+		t.Fatalf("NewCommenter: %v", err)
+	}
+	err = commenter.UpdateComment(context.Background(), "testdev", "hello", "Updated comment", commentID)
 
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
