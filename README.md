@@ -53,6 +53,11 @@ Since the value of `message` is set/interpolated at the start of the pipeline (u
                 allow-repeats: false
 ```
 
+## 📋 Behavior
+
+- **Canceled builds** (`BUILDKITE_COMMAND_EXIT_STATUS == -1`): the plugin always skips posting a comment and exits cleanly, regardless of whether `message`, `message-path`, or the default message is configured. This prevents noise on intentionally canceled builds.
+- **Non-PR builds** (`BUILDKITE_PULL_REQUEST == "false"`): the plugin exits gracefully without posting.
+
 ## 📒 Options
 
 ### `secret-name` (optional, string)
@@ -66,7 +71,7 @@ The message which should be posted to the PR. This can be a dynamic value, such 
 Default: `[${BUILDKITE_BUILD_URL}#${BUILDKITE_JOB_ID}](${BUILDKITE_BUILD_URL}#${BUILDKITE_JOB_ID}) exited with code ${BUILDKITE_COMMAND_EXIT_STATUS}`
 
 ### `message-path` (optional, string)
-The path to a file containing the message which should be posted to the PR. If both `message` and `message-path` are set, the plugin will use the value provided for `message`. If the build is canceled (exit status -1), the plugin always skips posting a comment and does not fail the build.
+The path to a file containing the message which should be posted to the PR. If both `message` and `message-path` are set, the plugin will use the value provided for `message`.
 
 Default: `null`
 
