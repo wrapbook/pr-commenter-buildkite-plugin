@@ -30,31 +30,40 @@ func (m *mockGitHubClient) EditComment(ctx context.Context, owner, repo string, 
 
 func TestPost(t *testing.T) {
 	t.Setenv("BUILDKITE_PIPELINE_SLUG", "test-pipeline")
-	t.Setenv("BUILDKITE_LABEL", "test-label")
+	t.Setenv("BUILDKITE_STEP_KEY", "test")
 	t.Setenv(common.PluginPrefix+"MESSAGE_ID", "1")
 
 	mockClient := &mockGitHubClient{
 		createComment: func(ctx context.Context, owner, repo string, number int, comment *github.IssueComment) (*github.IssueComment, *github.Response, error) {
-			if owner != "testdev" || repo != "hello" || number != 420 || *comment.Body != "Test comment\n\n<!-- test-pipeline:test-label:pr-commenter-buildkite-plugin:1 -->" {
+			if owner != "testdev" || repo != "hello" || number != 420 || *comment.Body != "Test comment\n\n<!-- test-pipeline:test:pr-commenter-buildkite-plugin:1 -->" {
 				t.Errorf("Unexpected arguments: owner=%s, repo=%s, number=%d, body=%s", owner, repo, number, *comment.Body)
 			}
 			return nil, nil, nil
 		},
 	}
 
-	commenter := comment.NewCommenter(mockClient)
+	commenter, err := comment.NewCommenter(mockClient)
+	if err != nil {
+		t.Fatalf("NewCommenter: %v", err)
+	}
 
-	err := commenter.Post(context.Background(), "testdev", "hello", "420", "Test comment")
+	err = commenter.Post(context.Background(), "testdev", "hello", "420", "Test comment")
 	if err != nil {
 		t.Fatalf("error posting comment: %s", err)
 	}
 }
 
 func TestPostCommentEmptyBody(t *testing.T) {
-	mockClient := &mockGitHubClient{}
-	commenter := comment.NewCommenter(mockClient)
+	t.Setenv("BUILDKITE_PIPELINE_SLUG", "test-pipeline")
+	t.Setenv("BUILDKITE_STEP_KEY", "test")
 
-	err := commenter.Post(context.Background(), "testdev", "hello", "69", "")
+	mockClient := &mockGitHubClient{}
+	commenter, err := comment.NewCommenter(mockClient)
+	if err != nil {
+		t.Fatalf("NewCommenter: %v", err)
+	}
+
+	err = commenter.Post(context.Background(), "testdev", "hello", "69", "")
 	if err == nil {
 		t.Fatalf("error expected due to empty body")
 	}
@@ -62,11 +71,11 @@ func TestPostCommentEmptyBody(t *testing.T) {
 
 func TestFindExistingComment_Found(t *testing.T) {
 	t.Setenv("BUILDKITE_PIPELINE_SLUG", "test-pipeline")
-	t.Setenv("BUILDKITE_LABEL", "test-label")
+	t.Setenv("BUILDKITE_STEP_KEY", "test")
 	t.Setenv(common.PluginPrefix+"MESSAGE_ID", "1")
 
 	expectedID := int64(123)
-	expectedBody := "Test comment\n\n<!-- test-pipeline:test-label:pr-commenter-buildkite-plugin:1 -->"
+	expectedBody := "Test comment\n\n<!-- test-pipeline:test:pr-commenter-buildkite-plugin:1 -->"
 	expectedURL := "https://github.com/test/repo/pull/1#issuecomment-123"
 
 	mockClient := &mockGitHubClient{
@@ -84,7 +93,10 @@ func TestFindExistingComment_Found(t *testing.T) {
 		},
 	}
 
-	commenter := comment.NewCommenter(mockClient)
+	commenter, err := comment.NewCommenter(mockClient)
+	if err != nil {
+		t.Fatalf("NewCommenter: %v", err)
+	}
 	result, err := commenter.FindExistingComment(context.Background(), "testdev", "hello", "320")
 
 	if err != nil {
@@ -100,11 +112,11 @@ func TestFindExistingComment_Found(t *testing.T) {
 
 func TestUpdateComment_Success(t *testing.T) {
 	t.Setenv("BUILDKITE_PIPELINE_SLUG", "test-pipeline")
-	t.Setenv("BUILDKITE_LABEL", "test-label")
+	t.Setenv("BUILDKITE_STEP_KEY", "test")
 	t.Setenv(common.PluginPrefix+"MESSAGE_ID", "1")
 
 	commentID := int64(456)
-	expectedBody := "Updated comment\n\n<!-- test-pipeline:test-label:pr-commenter-buildkite-plugin:1 -->"
+	expectedBody := "Updated comment\n\n<!-- test-pipeline:test:pr-commenter-buildkite-plugin:1 -->"
 
 	mockClient := &mockGitHubClient{
 		editComment: func(ctx context.Context, owner, repo string, id int64, comment *github.IssueComment) (*github.IssueComment, *github.Response, error) {
@@ -118,8 +130,11 @@ func TestUpdateComment_Success(t *testing.T) {
 		},
 	}
 
-	commenter := comment.NewCommenter(mockClient)
-	err := commenter.UpdateComment(context.Background(), "testdev", "hello", "Updated comment", commentID)
+	commenter, err := comment.NewCommenter(mockClient)
+	if err != nil {
+		t.Fatalf("NewCommenter: %v", err)
+	}
+	err = commenter.UpdateComment(context.Background(), "testdev", "hello", "Updated comment", commentID)
 
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
