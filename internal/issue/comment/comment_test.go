@@ -51,10 +51,16 @@ func TestPost(t *testing.T) {
 }
 
 func TestPostCommentEmptyBody(t *testing.T) {
-	mockClient := &mockGitHubClient{}
-	commenter, _ := comment.NewCommenter(mockClient)
+	t.Setenv("BUILDKITE_PIPELINE_SLUG", "test-pipeline")
+	t.Setenv("BUILDKITE_STEP_KEY", "test")
 
-	err := commenter.Post(context.Background(), "testdev", "hello", "69", "")
+	mockClient := &mockGitHubClient{}
+	commenter, err := comment.NewCommenter(mockClient)
+	if err != nil {
+		t.Fatalf("NewCommenter: %v", err)
+	}
+
+	err = commenter.Post(context.Background(), "testdev", "hello", "69", "")
 	if err == nil {
 		t.Fatalf("error expected due to empty body")
 	}

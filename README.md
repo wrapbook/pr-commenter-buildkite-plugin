@@ -3,13 +3,15 @@ A Buildkite plugin written in Go that enables commenting on pull requests that b
 
 The plugin uses the `/issues` endpoint as that doesn't require a commit SHA or file name in order to post the comment; this comment will post to the `conversation` tab and won't be associated with any file changes.
 
-The plugin has been tested and built using **go 1.20.3**, so it is not guaranteed to work on versions **<1.20.3**.
+The plugin has been tested and built using **go 1.24**. It may work on older versions but is not guaranteed.
 
 The plugin binary will get built in the step and output as a `pre-exit` hook. This ensures that it runs as the last command on the step and is able to get the *exit code* of the step that it runs on (necessary for the default message).
 
 The use of this plugin requires that clusters are being used and that the secret is available on that cluster, else the plugin will error.
 
 ## 👩‍💻 Usage
+
+>The plugin expects at least one of `BUILDKITE_STEP_KEY` or `BUILDKITE_LABEL` to be set for proper usage.
 
 Add the following to your `pipeline.yml`:
 
@@ -24,9 +26,11 @@ Add the following to your `pipeline.yml`:
 
 ### Enabling "Sticky" comments
 
-Set `allow-repeats: false` in order to post and update a single comment.
+Set `allow-repeats: false` in order to post and update a single comment. This configuration relies on `BUILDKITE_STEP_KEY` or `BUILDKITE_LABEL` being set _**and unique to the step**_.
+
 ```yaml
     steps:
+        key: approval-comment
         command: echo "~~~ :github: Add approval comment Pull Request"
         plugins:
             - pr-commenter#v0.4.1:
@@ -40,6 +44,7 @@ Set `allow-repeats: false` in order to post and update a single comment.
 Since the value of `message` is set/interpolated at the start of the pipeline (upload), `message-path` can be used to post message content generated during a step.
 ```yaml
     steps:
+        key: dynamic-comment
         command: echo "~~~ :github: Add approval comment Pull Request"
         plugins:
             - pr-commenter#v0.4.1:
@@ -51,7 +56,7 @@ Since the value of `message` is set/interpolated at the start of the pipeline (u
 ## 📒 Options
 
 ### `secret-name` (optional, string)
-The environment variable that contains the value of the GitHub API token. If not set, the plugin will try to get the URL from the default configuration.
+The name of the Buildkite secret that holds the GitHub API token. If not set, the plugin uses the secret named `GITHUB_TOKEN`.
 
 Default: `GITHUB_TOKEN`
 
@@ -61,12 +66,12 @@ The message which should be posted to the PR. This can be a dynamic value, such 
 Default: `[${BUILDKITE_BUILD_URL}#${BUILDKITE_JOB_ID}](${BUILDKITE_BUILD_URL}#${BUILDKITE_JOB_ID}) exited with code ${BUILDKITE_COMMAND_EXIT_STATUS}`
 
 ### `message-path` (optional, string)
-The path to a file containing the message which should be posted to the PR. If both `message` and `message-path` are set, the plugin will use the value provided for `message`. 
+The path to a file containing the message which should be posted to the PR. If both `message` and `message-path` are set, the plugin will use the value provided for `message`. If the build is canceled (exit status -1), the plugin always skips posting a comment and does not fail the build.
 
 Default: `null`
 
 ### `allow-repeats` (optional, boolean)
-Whether to Allow identical comments to be posted every time the plugin is run. Disabling this (`allow-repeats: false`) will cause the plugin to post a single "sticky" comment, which will be updated on subsequent runs if the message changes.
+Whether to allow identical comments to be posted every time the plugin is run. Disabling this (`allow-repeats: false`) will cause the plugin to post a single "sticky" comment, which will be updated on subsequent runs if the message changes.
 
 Default: `true`
 
